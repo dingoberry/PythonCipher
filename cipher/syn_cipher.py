@@ -3,18 +3,20 @@ from Crypto.Cipher import AES
 from Crypto.Random import HMAC, SHA256
 from Crypto.Hash import get_random_bytes
 
-def _enAes():
+def _enAes(data):
     aes_key = get_random_bytes(16)
     hmac_key = get_random_bytes(16)
 
     cipher = AES.new(aes_key, AES.MODE_CTR)
-    ciphertext = cipher.encrypt("123")
+    ciphertext = cipher.encrypt(data)
 
     hmac = HMAC.new(hmac_key, digestmod=SHA256)
     tag = hmac.update(cipher.nonce + ciphertext).digest()
 
-    print('''
-
+    print(f'''
+tag:{tag}
+nonce:{cipher.nonce}
+cipherContent:{ciphertext}
 ''')
 
 def _deAes():
@@ -36,6 +38,7 @@ def execute():
 
     isEncoding : None
     algorithm : None
+    encoding = getdefaultencoding()
     if argvLength >= 7:
          for index in range(3, argvLength, 2):
              if argv[index] == '-t':
@@ -52,3 +55,12 @@ def execute():
         raise Exception("Please give a target action!")
     if algorithm == None:
         raise Exception("Please give a algorithm!")
+    
+    cipher = CipherDict.get(algorithm)
+    if cipher == None:
+        raise Exception("No syn-algorithm definition!")
+    elif isEncoding:
+        cipher[0](info.encode(encoding))
+    else:
+        cipher[1]()
+        

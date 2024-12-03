@@ -1,6 +1,7 @@
 from sys import argv, getdefaultencoding, exc_info
 import digest.hasher as LibHasher
 import digest.baser as LibBaser
+import cipher.syn_cipher as LibSynCipher
 
 def _showHelp():
     encoding = getdefaultencoding()
@@ -18,7 +19,8 @@ Support help:
     
 executeDict = {
     "hash": LibHasher.execute,
-    "base": LibBaser.execute
+    "base": LibBaser.execute,
+    "scipher": LibSynCipher.execute
 }
 
 if __name__ == "__main__":

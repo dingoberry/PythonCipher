@@ -19,49 +19,51 @@ HashDict = {
 }
 
 def execute():
-    argvLength = len(argv)
-    if argvLength < 5 or argv[3] != '-h':
+    argv_length = len(argv)
+    if argv_length < 5 or argv[3] != '-h':
         raise Exception("Please give a hash algorithm!")
     
     al = argv[4]
     digest = HashDict.get(al)
-    if digest == None:
+    if digest is None:
         raise Exception("No hash algorithm definition!")
     else:
         info = None
         el = None
         encoding = getdefaultencoding()
-        if argvLength > 6:
-            for index in range(5, argvLength, 2):
+        if argv_length > 6:
+            for index in range(5, argv_length, 2):
                 if argv[index] == '-e':
                     encoding = argv[index + 1]
                 elif argv[index] == '-l':
                     el = int(argv[index + 1])
-                elif index == argvLength - 1:
+                elif index == argv_length - 1:
                     info = argv[index]
             
-        elif argvLength == 6:
+        elif argv_length == 6:
             info = argv[5]
 
-        if info == None:
+        if info is None:
             raise Exception("No message definition!")
        
-        hex : None
-        _bytes: None
-        digestExc = digest(info.encode(encoding))
+        _hex = None
+        _bytes = None
+        digest_exc = digest(info.encode(encoding))
         if digest == shake_128 or digest == shake_256:
-            if el == None:
+            if el is None:
                 raise Exception("Shake algorithm require a length!")
             else:
-                hex = digestExc.hexdigest(el)
-                _bytes = digestExc.digest(el)
+                # noinspection PyArgumentList
+                _hex = digest_exc.hexdigest(el)
+                # noinspection PyArgumentList
+                _bytes = digest_exc.digest(el)
         else:
-            hex = digestExc.hexdigest()
-            _bytes = digestExc.digest()
+            _hex = digest_exc.hexdigest()
+            _bytes = digest_exc.digest()
       
         print(f"""
 Raw: {info}
 Hash: {al}
 Bytes: {_bytes}
-Hex: {hex}
-Length: {len(hex)}""")
+Hex: {_hex}
+Length: {len(_hex)}""")

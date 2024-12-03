@@ -7,20 +7,25 @@ def _showHelp():
     encoding = getdefaultencoding()
     print(f'''
 Support help:
-    -w hash | base
+    -w hash | base | s-cipher
         hash:
             -h(Hash) {' | '.join([item for item in LibHasher.HashDict.keys()])} [Option] <message>
                 Option: -e(encoding) {encoding}(default) -l(shake128, shake128 required) <byte length>
         base:
             -t e(encoding) | d(decoding) -b(bit) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
                 Option: -e(encoding) {encoding}(default)
-          
+                
+        s-cipher:
+            -t e(encoding) | d(decoding) -a(Algorithm) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
+                Option: -e(encoding) {encoding}(default)
+                        aes: -l(length) 128(default) | 192 | 256 -m(mode) cbc(default) |ecb | ofb | cfb | ctr
+                        des: -m(mode) cbc(default) |ecb | ofb | cfb | ctr
 ''')
     
 executeDict = {
     "hash": LibHasher.execute,
     "base": LibBaser.execute,
-    "scipher": LibSynCipher.execute
+    "s-cipher": LibSynCipher.execute
 }
 
 if __name__ == "__main__":
@@ -29,7 +34,7 @@ if __name__ == "__main__":
         exit(1)
 
     ec = executeDict.get(argv[2])
-    if ec == None:
+    if ec is None:
        _showHelp()
     else:
         try:

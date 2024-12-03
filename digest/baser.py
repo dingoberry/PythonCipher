@@ -11,39 +11,39 @@ BaseDict = {
 }
 
 def execute():
-    argvLength = len(argv)
-    
-    isEncoding : None
-    bit : None
+    argv_length = len(argv)
+
+    is_encoding = None
+    bit = None
     encoding = getdefaultencoding()
     info = None
-    if argvLength >= 7:
-         for index in range(3, argvLength, 2):
+    if argv_length >= 7:
+         for index in range(3, argv_length, 2):
              if argv[index] == '-t':
-                 realEncoding = argv[index + 1]
-                 isEncoding = True if realEncoding == 'e' else (False if realEncoding == 'd' else None)
+                 real_encoding = argv[index + 1]
+                 is_encoding = True if real_encoding == 'e' else (False if real_encoding == 'd' else None)
              elif argv[index] == '-b':
                  bit = argv[index + 1]
              elif argv[index] == '-e':
                  encoding = argv[index + 1]
-             elif index == argvLength - 1:
+             elif index == argv_length - 1:
                  info = argv[index]
              
 
-    if isEncoding == None:
+    if is_encoding is None:
         raise Exception("Please give a target action!")
-    if bit == None:
+    if bit is None:
         raise Exception("Please give a encoding bit!")
-    if info == None:
+    if info is None:
         raise Exception("No message definition!")
     
     base = BaseDict.get(bit)
-    if base == None:
+    if base is None:
         raise Exception("No base algorithm definition!")
     
-    base = base[0] if isEncoding else base[1]
+    base = base[0] if is_encoding else base[1]
     print(f"""
 Raw: {info}
-Method: {"encoding" if isEncoding else "decoding"} - {bit}
+Method: {"encoding" if is_encoding else "decoding"} - {bit}
 Output: {base(info.encode(encoding)).decode(encoding)}""")
     

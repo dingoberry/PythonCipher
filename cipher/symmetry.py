@@ -4,7 +4,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from common.cipher_base import CipherBase
 
-class SynCipher(CipherBase):
+class SymCipher(CipherBase):
     def __init__(self, argv, algorithm=None) -> None:
         super().__init__(argv, algorithm)
 
@@ -26,42 +26,42 @@ class SynCipher(CipherBase):
         else:
             return es.MODE_CBC 
 
-def _enEs(synCipher, es):
-    key = get_random_bytes(synCipher.seed_length)
-    mode = synCipher.getMode(es)
+def _enEs(sym_cipher, es):
+    key = get_random_bytes(sym_cipher.seed_length)
+    mode = sym_cipher.getMode(es)
     # noinspection PyTypeChecker
     cipher = es.new(key, mode)
-    data = synCipher.useContent()
+    data = sym_cipher.useContent()
     ct_bytes = cipher.encrypt(pad(data, es.block_size) if mode in (es.MODE_CBC, es.MODE_ECB) else data)
 
-    synCipher.__dict__['key'] = synCipher.encodeBase64(key)
-    synCipher.__dict__['cipher_text'] = synCipher.encodeBase64(ct_bytes)
+    sym_cipher.__dict__['key'] = sym_cipher.encodeBase64(key)
+    sym_cipher.__dict__['cipher_text'] = sym_cipher.encodeBase64(ct_bytes)
 
     if mode == es.MODE_CTR:
-        synCipher.__dict__['nonce'] = synCipher.encodeBase64(cipher.nonce)
+        sym_cipher.__dict__['nonce'] = sym_cipher.encodeBase64(cipher.nonce)
     elif mode != es.MODE_ECB:
-        synCipher.__dict__['iv'] = synCipher.encodeBase64(cipher.iv)
+        sym_cipher.__dict__['iv'] = sym_cipher.encodeBase64(cipher.iv)
 
-    synCipher.__dict__['cipher_sum'] = synCipher.encodeBase85(str(synCipher))
-    print(synCipher)
+    sym_cipher.__dict__['cipher_sum'] = sym_cipher.encodeBase85(str(sym_cipher))
+    print(sym_cipher)
 
-def _deEs(synCipher, es):
+def _deEs(sym_cipher, es):
     data = None
     try:
-        data = json.loads(synCipher.useContent())
+        data = json.loads(sym_cipher.useContent())
     except json.JSONDecodeError as e:
-        data = json.loads(synCipher.decodeBase85(synCipher.content))
+        data = json.loads(sym_cipher.decodeBase85(sym_cipher.content))
 
-    key = synCipher.decodeBase64(data['key'])
-    ct = synCipher.decodeBase64(data['cipher_text'])
+    key = sym_cipher.decodeBase64(data['key'])
+    ct = sym_cipher.decodeBase64(data['cipher_text'])
 
-    mode = synCipher.getMode(es)
+    mode = sym_cipher.getMode(es)
     nonce = None
     iv = None
     if mode == es.MODE_CTR:
-        nonce = synCipher.decodeBase64(data['nonce'])
+        nonce = sym_cipher.decodeBase64(data['nonce'])
     elif mode != es.MODE_ECB:
-        iv = synCipher.decodeBase64(data['iv'])
+        iv = sym_cipher.decodeBase64(data['iv'])
 
     # noinspection PyTypeChecker
     cipher = es.new(key, mode) \
@@ -70,20 +70,20 @@ def _deEs(synCipher, es):
     data = cipher.decrypt(ct)
     if mode in (es.MODE_CBC, es.MODE_ECB):
         data = unpad(data, es.block_size)
-    synCipher.__dict__['output'] = data.decode(synCipher.encoding)
-    print(synCipher)
+    sym_cipher.__dict__['output'] = data.decode(sym_cipher.encoding)
+    print(sym_cipher)
 
-def _enAes(synCipher):
-   _enEs(synCipher, AES)
+def _enAes(sym_cipher):
+   _enEs(sym_cipher, AES)
 
-def _deAes(synCipher):
-    _deEs(synCipher, AES)
+def _deAes(sym_cipher):
+    _deEs(sym_cipher, AES)
 
-def _enDes(synCipher):
-    _enEs(synCipher, DES)
+def _enDes(sym_cipher):
+    _enEs(sym_cipher, DES)
 
-def _deDes(synCipher):
-    _deEs(synCipher, DES)
+def _deDes(sym_cipher):
+    _deEs(sym_cipher, DES)
 
 
 CipherDict = {
@@ -92,8 +92,8 @@ CipherDict = {
 }
 
 def execute(argv):
-    s_base = SynCipher(argv)
-    cipher = s_base.retrieveAlgorithm(CipherDict, "syn-algorithm") 
+    s_base = SymCipher(argv)
+    cipher = s_base.retrieveAlgorithm(CipherDict, "symmetric algorithm")
 
     if s_base.isEncrypt():
         cipher[0](s_base)

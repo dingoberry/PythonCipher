@@ -1,49 +1,54 @@
 from sys import argv, getdefaultencoding, exc_info
 import digest.hasher as LibHasher
 import digest.baser as LibBaser
-import cipher.syn_cipher as LibSynCipher
-import cipher.asyn_cipher as LibAsynCipher
+import cipher.symmetry as LibSymCipher
+import cipher.asymmetric as LibAsymCipher
 
 def _showHelp():
     encoding = getdefaultencoding()
     print(f'''
 Support help:
-    -w hash | base | s-cipher | a-cipher
-        hash:
-            -a(Algorithm) {' | '.join([item for item in LibHasher.HashDict.keys()])} [Option] <message>
-                Option: -e(encoding) {encoding}(default) -l(shake128, shake128 required) <byte length>
-        base:
-            -t e(Encrypt) | d(Decrypt) -a(Algorithm)(base64-default) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
-                Option: -e(encoding) {encoding}(default)
-                
-        s-cipher:
-            -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibSynCipher.CipherDict.keys()])} [Option] <message>
-                Option: -e(encoding) {encoding}(default)
-                        aes: -l(length) 128(default) | 192 | 256 -m(mode) cbc(default) | ecb | ofb | cfb | ctr
-                        des: -m(mode) cbc(default) | ecb | ofb | cfb | ctr
-        a-cipher:
-            -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibAsynCipher.CipherDict.keys()])} [Option] <message>
-                Option: -e(encoding) {encoding}(default)
+    -w hash | base | s-cipher | a-cipher [...Required] [Option] <message>
+        [Option]:
+            -e(encoding) {encoding}(default)
+        
+        [Required]:    
+            hash:
+                -a(Algorithm) {' | '.join([item for item in LibHasher.HashDict.keys()])}
+                    [Option]: 
+                            -l(shake128, shake128 required) <byte length>
+                    
+            base(Base Algorithm): 
+                -t e(Encrypt) | d(Decrypt) -a(Algorithm)(base64-default) {' | '.join([item for item in LibBaser.BaseDict.keys()])}
+                    
+            sci(Symmetric Cipher):
+                -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibSymCipher.CipherDict.keys()])}
+                    [Option]:
+                            aes: -l(length) 128(default) | 192 | 256
+                            des | aes: -m(mode) cbc(default) | ecb | ofb | cfb | ctr
+                            
+            aci(Asymmetric Cipher):
+                -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibAsymCipher.CipherDict.keys()])}
 ''')
     
 executeDict = {
     "hash": LibHasher.execute,
     "base": LibBaser.execute,
-    "s-cipher": LibSynCipher.execute,
-    "a-cipher": LibAsynCipher.execute
+    "sci": LibSymCipher.execute,
+    "aci": LibAsymCipher.execute
 }
 
-def _parseArgs(argDic):
-     argKey = None
+def _parseArgs(arg_dic):
+     arg_key = None
      for arg in argv[1:]:
         if arg.startswith('-'):
-            argDic[arg] = None
-            argKey = arg
-        elif argKey is not None:
-            argDic[argKey] = arg
-            argKey = None
+            arg_dic[arg] = None
+            arg_key = arg
+        elif arg_key is not None:
+            arg_dic[arg_key] = arg
+            arg_key = None
         else:
-            argDic['content'] = arg
+            arg_dic['content'] = arg
             
 
 if __name__ == "__main__":
@@ -62,9 +67,7 @@ if __name__ == "__main__":
     else:
         try:
             ec(argDic)
-        except Exception as e:
-            for exc in exc_info(): 
-                print(exc)
+        except Exception:
             _showHelp()
         except:
             for exc in exc_info(): 

@@ -8,7 +8,7 @@ def _showHelp():
     encoding = getdefaultencoding()
     print(f'''
 Support help:
-    -w hash | base | s-cipher | a-cipher [...Required] [Option] <message>
+    -w hash | base | sci | aci [...Required] [Option] <message>
         [Option]:
             -e(encoding) {encoding}(default)
         
@@ -25,10 +25,14 @@ Support help:
                 -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibSymCipher.CipherDict.keys()])}
                     [Option]:
                             aes: -l(length) 128(default) | 192 | 256
-                            des | aes: -m(mode) cbc(default) | ecb | ofb | cfb | ctr
+                            des | aes: -m(mode) cbc(default) | ecb | ofb | cfb | ctr | eax
                             
             aci(Asymmetric Cipher):
                 -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibAsymCipher.CipherDict.keys()])}
+                    [Option]: 
+                            rsa(Encrypt): -l(length) 1024 | 2048(default) | 3072 -s <Sign message>
+                                          -m(mode) oaep(default) | v1.5
+                                          -pwd <Password>
 ''')
     
 executeDict = {
@@ -67,7 +71,8 @@ if __name__ == "__main__":
     else:
         try:
             ec(argDic)
-        except Exception:
+        except Exception as e:
+            print(e)
             _showHelp()
         except:
             for exc in exc_info(): 

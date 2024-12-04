@@ -16,7 +16,7 @@ def execute(argv):
     base = c_base.retrieveAlgorithm(BaseDict, 'BASE')   
     base = base[0] if c_base.isEncrypt() else base[1]
 
-    c_base.__dict__['output'] = c_base.encodeText(lambda: base(c_base.useContent()))
+    c_base.__dict__['output'] = c_base.encodeText(base(c_base.useContent()))
     c_base.algorithm = f"base{c_base.algorithm}"
 
     print(c_base)

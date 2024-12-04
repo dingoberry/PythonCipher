@@ -11,30 +11,29 @@ class AlgorithmBase:
         if self.algorithm is None:
             raise Exception("Please give a algorithm!")
         
-    def retrieveAlgorithm(self, dict, hint = None):
-        algorithmfuc = dict.get(self.algorithm)
-        if algorithmfuc is None:
+    def retrieveAlgorithm(self, al_dict, hint = None):
+        algorithm_func = al_dict.get(self.algorithm)
+        if algorithm_func is None:
             raise Exception(f"No {hint + " " if hint is not None else ""}algorithm definition!")
-        return algorithmfuc
+        return algorithm_func
 
     def useContent(self):
         if self.content is None:
             raise Exception("No message definition!")
         return self.content.encode(self.encoding)
     
-    def encodeText(self, task):
-        result = task()
-        if isinstance(result, bytes):
-            return result.decode(self.encoding)
-        elif isinstance(result, str):
-            return result
+    def encodeText(self, source) -> str:
+        if isinstance(source, bytes):
+            return source.decode(self.encoding)
+        elif isinstance(source, str):
+            return source
         else:
-            raise Exception("Bad encoding text for none defined result!")
+            raise Exception(f"Bad encoding text for none defined result!")
 
     def encodeBase64(self, data: bytes | str):
         if isinstance(data, str):
             data = data.encode(self.encoding)
-        return self.encodeText(lambda: b64encode(data))
+        return self.encodeText(b64encode(data))
 
     def decodeBase64(self, data: str):
         return b64decode(data.encode(self.encoding))
@@ -42,7 +41,7 @@ class AlgorithmBase:
     def encodeBase85(self, data: bytes | str):
         if isinstance(data, str):
             data = data.encode(self.encoding)
-        return self.encodeText(lambda: b85encode(data))
+        return self.encodeText(b85encode(data))
 
     def decodeBase85(self, data: str):
         return b85decode(data.encode(self.encoding))

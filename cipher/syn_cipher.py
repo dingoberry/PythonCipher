@@ -46,12 +46,12 @@ def _enEs(name, data, encoding, es, el = 16):
     print(json.dumps(body).replace("\"", "\\\""))
 
 def _deEs(data, encoding, es):
-    b64 = json.loads(data)
-    key = b64decode(b64['key'].encode(encoding))
-    ct = b64decode(b64['cipherText'].encode(encoding))
+    data = json.loads(data)
+    key = b64decode(data['key'].encode(encoding))
+    ct = b64decode(data['cipherText'].encode(encoding))
 
     mode = es.MODE_CBC
-    mode_str = b64['mode']
+    mode_str = data['mode']
     if mode_str == 'ecb':
         mode = es.MODE_ECB
     elif mode_str == 'ctr':
@@ -64,9 +64,9 @@ def _deEs(data, encoding, es):
     nonce = None
     iv = None
     if mode == es.MODE_CTR:
-        nonce = b64decode(b64['nonce'].encode(encoding))
+        nonce = b64decode(data['nonce'].encode(encoding))
     elif mode != es.MODE_ECB:
-        iv = b64decode(b64['iv'].encode(encoding))
+        iv = b64decode(data['iv'].encode(encoding))
 
     # noinspection PyTypeChecker
     cipher = es.new(key, mode) \
@@ -96,6 +96,8 @@ CipherDict = {
     "des": (_enDes, _deDes)
 }
 
+
+# noinspection DuplicatedCode
 def execute():
     argv_length = len(argv)
 

@@ -1,72 +1,67 @@
 import json
-from base64 import b64encode, b64decode
-from sys import argv, getdefaultencoding
-
 from Crypto.Cipher import AES, DES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+from common.cipher_base import CipherBase
 
-def _enEs(name, data, encoding, es, el = 16):
-    argv_length = len(argv)
-    mode = es.MODE_CBC
-    mode_str = 'cbc'
-    if argv_length > 7:
-        for index in range(7, argv_length, 2):
-            if argv[index] == '-l' and es == AES:
-                el = int(int(argv[index + 1]) / 8)
-            if argv[index] == '-m':
-                mode_str = argv[index + 1]
-                if mode_str == 'ecb':
-                    mode = es.MODE_ECB
-                elif mode_str == 'ctr':
-                    mode = es.MODE_CTR
-                elif mode_str == 'cfb':
-                    mode = es.MODE_CFB
-                elif mode_str == 'ofb':
-                    mode = es.MODE_OFB
+class SynCipher(CipherBase):
+    def __init__(self, argv, algorithm=None) -> None:
+        super().__init__(argv, algorithm)
 
-    key = get_random_bytes(el)
+        if self.algorithm in ('aes', 'des'):
+            l = argv.get('-l')
+            self.seed_length = 8 if self.algorithm == 'des' else 16 if l is None else int(int(l) / 8)
+            self.mode = argv.get('-m', 'cbc')
+    
+    def getMode(self, es):
+        mode = self.__dict__.get('mode')
+        if mode == 'ecb':
+            return es.MODE_ECB
+        elif mode == 'ctr':
+            return es.MODE_CTR
+        elif mode == 'cfb':
+            return es.MODE_CFB
+        elif mode == 'ofb':
+            return es.MODE_OFB
+        else:
+            return es.MODE_CBC 
+
+def _enEs(synCipher, es):
+    key = get_random_bytes(synCipher.seed_length)
+    mode = synCipher.getMode(es)
     # noinspection PyTypeChecker
     cipher = es.new(key, mode)
-    data = data.encode(encoding)
+    data = synCipher.useContent()
     ct_bytes = cipher.encrypt(pad(data, es.block_size) if mode in (es.MODE_CBC, es.MODE_ECB) else data)
 
-    body = {
-        "algorithm": name,
-        "mode": mode_str,
-        "key": b64encode(key).decode(encoding),
-        "cipherText": b64encode(ct_bytes).decode(encoding)
-    }
+    synCipher.__dict__['key'] = synCipher.encodeBase64(key)
+    synCipher.__dict__['cipher_text'] = synCipher.encodeBase64(ct_bytes)
 
     if mode == es.MODE_CTR:
-        body['nonce'] = b64encode(cipher.nonce).decode(encoding)
+        synCipher.__dict__['nonce'] = synCipher.encodeBase64(cipher.nonce)
     elif mode != es.MODE_ECB:
-        body['iv'] = b64encode(cipher.iv).decode(encoding)
+        synCipher.__dict__['iv'] = synCipher.encodeBase64(cipher.iv)
 
-    print(json.dumps(body).replace("\"", "\\\""))
+    synCipher.__dict__['cipher_sum'] = synCipher.encodeBase85(str(synCipher))
+    print(synCipher)
 
-def _deEs(data, encoding, es):
-    data = json.loads(data)
-    key = b64decode(data['key'].encode(encoding))
-    ct = b64decode(data['cipherText'].encode(encoding))
+def _deEs(synCipher, es):
+    data = None
+    try:
+        data = json.loads(synCipher.useContent())
+    except json.JSONDecodeError as e:
+        data = json.loads(synCipher.decodeBase85(synCipher.content))
 
-    mode = es.MODE_CBC
-    mode_str = data['mode']
-    if mode_str == 'ecb':
-        mode = es.MODE_ECB
-    elif mode_str == 'ctr':
-        mode = es.MODE_CTR
-    elif mode_str == 'cfb':
-        mode = es.MODE_CFB
-    elif mode_str == 'ofb':
-        mode = es.MODE_OFB
+    key = synCipher.decodeBase64(data['key'])
+    ct = synCipher.decodeBase64(data['cipher_text'])
 
+    mode = synCipher.getMode(es)
     nonce = None
     iv = None
     if mode == es.MODE_CTR:
-        nonce = b64decode(data['nonce'].encode(encoding))
+        nonce = synCipher.decodeBase64(data['nonce'])
     elif mode != es.MODE_ECB:
-        iv = b64decode(data['iv'].encode(encoding))
+        iv = synCipher.decodeBase64(data['iv'])
 
     # noinspection PyTypeChecker
     cipher = es.new(key, mode) \
@@ -75,20 +70,20 @@ def _deEs(data, encoding, es):
     data = cipher.decrypt(ct)
     if mode in (es.MODE_CBC, es.MODE_ECB):
         data = unpad(data, es.block_size)
-    print(f"Decrypted cipherText: {data.decode(encoding)}")
+    synCipher.__dict__['output'] = data.decode(synCipher.encoding)
+    print(synCipher)
 
-def _enAes(data, encoding):
-   _enEs('AES', data, encoding, AES)
+def _enAes(synCipher):
+   _enEs(synCipher, AES)
 
-def _deAes(data, encoding):
-    _deEs(data, encoding, AES)
+def _deAes(synCipher):
+    _deEs(synCipher, AES)
 
-def _enDes(data, encoding):
-    _enEs('DES', data, encoding, DES, 8)
+def _enDes(synCipher):
+    _enEs(synCipher, DES)
 
-
-def _deDes(data, encoding):
-    _deEs(data, encoding, DES)
+def _deDes(synCipher):
+    _deEs(synCipher, DES)
 
 
 CipherDict = {
@@ -96,36 +91,11 @@ CipherDict = {
     "des": (_enDes, _deDes)
 }
 
+def execute(argv):
+    s_base = SynCipher(argv)
+    cipher = s_base.retrieveAlgorithm(CipherDict, "syn-algorithm") 
 
-# noinspection DuplicatedCode
-def execute():
-    argv_length = len(argv)
-
-    is_encoding = None
-    algorithm = None
-    encoding = getdefaultencoding()
-    info = None
-    if argv_length >= 5:
-        for index in range(3, argv_length, 2):
-            if argv[index] == '-t':
-                real_encoding = argv[index + 1]
-                is_encoding = True if real_encoding == 'e' else (False if real_encoding == 'd' else None)
-            elif argv[index] == '-a':
-                algorithm = argv[index + 1]
-            elif argv[index] == '-e':
-                encoding = argv[index + 1]
-            elif index == argv_length - 1:
-                info = argv[index]
-
-    if is_encoding is None:
-        raise Exception("Please give a target action!")
-    if algorithm is None:
-        raise Exception("Please give a algorithm!")
-
-    cipher = CipherDict.get(algorithm)
-    if cipher is None:
-        raise Exception("No syn-algorithm definition!")
-    elif is_encoding:
-        cipher[0](info, encoding)
+    if s_base.isEncrypt():
+        cipher[0](s_base)
     else:
-        cipher[1](info, encoding)
+        cipher[1](s_base)

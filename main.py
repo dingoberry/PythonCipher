@@ -8,19 +8,22 @@ def _showHelp():
     encoding = getdefaultencoding()
     print(f'''
 Support help:
-    -w hash | base | s-cipher
+    -w hash | base | s-cipher | a-cipher
         hash:
-            -h(Hash) {' | '.join([item for item in LibHasher.HashDict.keys()])} [Option] <message>
+            -a(Algorithm) {' | '.join([item for item in LibHasher.HashDict.keys()])} [Option] <message>
                 Option: -e(encoding) {encoding}(default) -l(shake128, shake128 required) <byte length>
         base:
-            -t e(encoding) | d(decoding) -b(bit) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
+            -t e(Encrypt) | d(Decrypt) -a(Algorithm)(base64-default) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
                 Option: -e(encoding) {encoding}(default)
                 
         s-cipher:
-            -t e(encoding) | d(decoding) -a(Algorithm) {' | '.join([item for item in LibBaser.BaseDict.keys()])} [Option] <message>
+            -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibSynCipher.CipherDict.keys()])} [Option] <message>
                 Option: -e(encoding) {encoding}(default)
-                        aes: -l(length) 128(default) | 192 | 256 -m(mode) cbc(default) |ecb | ofb | cfb | ctr
-                        des: -m(mode) cbc(default) |ecb | ofb | cfb | ctr
+                        aes: -l(length) 128(default) | 192 | 256 -m(mode) cbc(default) | ecb | ofb | cfb | ctr
+                        des: -m(mode) cbc(default) | ecb | ofb | cfb | ctr
+        a-cipher:
+            -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibAsynCipher.CipherDict.keys()])} [Option] <message>
+                Option: -e(encoding) {encoding}(default)
 ''')
     
 executeDict = {
@@ -30,19 +33,38 @@ executeDict = {
     "a-cipher": LibAsynCipher.execute
 }
 
-if __name__ == "__main__":
-    if len(argv) < 2 or argv[1] == '-h' or argv[1] != '-w':
-        _showHelp()
-        exit(1)
+def _parseArgs(argDic):
+     argKey = None
+     for arg in argv[1:]:
+        if arg.startswith('-'):
+            argDic[arg] = None
+            argKey = arg
+        elif argKey is not None:
+            argDic[argKey] = arg
+            argKey = None
+        else:
+            argDic['content'] = arg
+            
 
-    ec = executeDict.get(argv[2])
+if __name__ == "__main__":
+    argDic = {}
+    _parseArgs(argDic)
+
+    if len(argDic) == 0 or argDic.__contains__('-h'):
+        _showHelp()
+        exit(1)       
+
+    ec = argDic.get('-w')
+    ec = executeDict[ec] if ec is not None else ec
     if ec is None:
-       _showHelp()
+        _showHelp()
+        exit(1)     
     else:
         try:
-            ec()
+            ec(argDic)
         except Exception as e:
-            print(e)
+            for exc in exc_info(): 
+                print(exc)
             _showHelp()
         except:
             for exc in exc_info(): 

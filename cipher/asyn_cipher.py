@@ -3,85 +3,64 @@ import json
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES,PKCS1_OAEP
 from Crypto.Random import get_random_bytes
-from sys import argv, getdefaultencoding
+from common.cipher_base import CipherBase
 import json
 
-def _enRsa(data, encoding):
+def _enRsa(asynCipher):
     key = RSA.generate(2048)
 
-    private_key = key.export_key().decode(encoding)
-
-    recipient_key = RSA.import_key(key.publickey().export_key().decode(encoding))
+    private_key = key.export_key().decode(asynCipher.encoding)
+    public_key  = RSA.import_key(key.publickey().export_key().decode(asynCipher.encoding))
     session_key = get_random_bytes(16)
 
-    # Encrypt the session key with the public RSA key
-    cipher_rsa = PKCS1_OAEP.new(recipient_key)
+    cipher_rsa = PKCS1_OAEP.new(public_key)
     enc_session_key = cipher_rsa.encrypt(session_key)
 
-    # Encrypt the data with the AES session key
     cipher_aes = AES.new(session_key, AES.MODE_EAX)
-    ciphertext, tag = cipher_aes.encrypt_and_digest(data.encode(encoding))
+    ciphertext, tag = cipher_aes.encrypt_and_digest(asynCipher.useContent())
+ 
+    asynCipher.__dict__['session_key_len'] = len(enc_session_key)
+    asynCipher.__dict__['session_key'] = asynCipher.encodeBase64(enc_session_key)
+    asynCipher.__dict__['nonce'] = asynCipher.encodeBase64(cipher_aes.nonce)
+    asynCipher.__dict__['tag'] = asynCipher.encodeBase64(tag)
+    asynCipher.__dict__['cipher_text'] = asynCipher.encodeBase64(ciphertext)
+    asynCipher.__dict__['private_key'] = private_key
+    asynCipher.__dict__['cipher_sum'] = asynCipher.encodeBase85(str(asynCipher))
 
-    print(json.dumps({
-        "algorithm": "rsa",
-        "session_key": enc_session_key.hex(),
-        "nonce": cipher_aes.nonce.hex(),
-        "tag": tag.hex(),
-        "ciphertext": ciphertext.hex(),
-        "private_key": private_key
-    }).replace("\"", "\\\""))
+    print(asynCipher)
 
-def _deRsa(data, encoding):
-    data = json.loads(data)
+def _deRsa(asynCipher):
+    data = None
+    try:
+        data = json.loads(asynCipher.useContent())
+    except json.JSONDecodeError as e:
+        data = json.loads(asynCipher.decodeBase85(asynCipher.content))
 
-    enc_session_key = data['session_key']
-    nonce = data['nonce']
-    tag = data['tag']
-    ciphertext = data['ciphertext']
-    private_key = data['private_key']
+    enc_session_key = asynCipher.decodeBase64(data['session_key'])
+    nonce = asynCipher.decodeBase64(data['nonce'])
+    tag = asynCipher.decodeBase64(data['tag'])
+    ciphertext = asynCipher.decodeBase64(data['cipher_text'])
+    private_key = RSA.import_key(data['private_key'])     
 
-    # Decrypt the session key with the private RSA key
     cipher_rsa = PKCS1_OAEP.new(private_key)
-    session_key = cipher_rsa.decrypt(private_key.size_in_bytes())
+    session_key = cipher_rsa.decrypt(enc_session_key)
 
-    # Decrypt the data with the AES session key
-    # cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
-    # data = cipher_aes.decrypt_and_verify(ciphertext, tag)
-    # print(f"Decrypted cipherText: {data.decode(encoding)}")
+    cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
+    data = cipher_aes.decrypt_and_verify(ciphertext, tag)
+    asynCipher.__dict__['session_key_len'] = private_key.size_in_bytes()
+    asynCipher.__dict__['output'] = asynCipher.encodeText(lambda: data)
+    print(asynCipher)
 
 CipherDict = {
     "rsa": (_enRsa, _deRsa),
 }
 
 # noinspection DuplicatedCode
-def execute():
-    argv_length = len(argv)
-
-    is_encoding = None
-    algorithm = None
-    encoding = getdefaultencoding()
-    info = None
-    if argv_length >= 5:
-        for index in range(3, argv_length, 2):
-            if argv[index] == '-t':
-                real_encoding = argv[index + 1]
-                is_encoding = True if real_encoding == 'e' else (False if real_encoding == 'd' else None)
-            elif argv[index] == '-a':
-                algorithm = argv[index + 1]
-            elif argv[index] == '-e':
-                encoding = argv[index + 1]
-            elif index == argv_length - 1:
-                info = argv[index]
-
-    if is_encoding is None:
-        raise Exception("Please give a target action!")
-    if algorithm is None:
-        raise Exception("Please give a algorithm!")
-
-    cipher = CipherDict.get(algorithm)
-    if cipher is None:
-        raise Exception("No asyn-algorithm definition!")
-    elif is_encoding:
-        cipher[0](info, encoding)
+def execute(argv):
+    a_base = CipherBase(argv)
+    cipher = a_base.retrieveAlgorithm(CipherDict, "asyn-algorithm")
+    
+    if a_base.isEncrypt():
+        cipher[0](a_base)
     else:
-        cipher[1](info, encoding)
+        cipher[1](a_base)

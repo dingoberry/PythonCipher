@@ -1,5 +1,6 @@
-from sys import argv, getdefaultencoding
+from sys import getdefaultencoding
 from hashlib import *
+from common.cipher_base import AlgorithmBase
  
 HashDict = {
     "md5": md5,
@@ -18,52 +19,39 @@ HashDict = {
     "blake2s": blake2s,
 }
 
-def execute():
-    argv_length = len(argv)
-    if argv_length < 5 or argv[3] != '-h':
-        raise Exception("Please give a hash algorithm!")
-    
-    al = argv[4]
-    digest = HashDict.get(al)
-    if digest is None:
-        raise Exception("No hash algorithm definition!")
-    else:
-        info = None
-        el = None
-        encoding = getdefaultencoding()
-        if argv_length > 6:
-            for index in range(5, argv_length, 2):
-                if argv[index] == '-e':
-                    encoding = argv[index + 1]
-                elif argv[index] == '-l':
-                    el = int(argv[index + 1])
-                elif index == argv_length - 1:
-                    info = argv[index]
-            
-        elif argv_length == 6:
-            info = argv[5]
+class Hasher(AlgorithmBase):
+    def __init__(self, argv, algorithm=None) -> None:
+        super().__init__(argv, algorithm)
+        length = argv.get('-l')
+        if length is not None:
+            self.var_len = length
 
-        if info is None:
-            raise Exception("No message definition!")
-       
-        _hex = None
-        _bytes = None
-        digest_exc = digest(info.encode(encoding))
-        if digest == shake_128 or digest == shake_256:
-            if el is None:
-                raise Exception("Shake algorithm require a length!")
-            else:
-                # noinspection PyArgumentList
-                _hex = digest_exc.hexdigest(el)
-                # noinspection PyArgumentList
-                _bytes = digest_exc.digest(el)
+    def getVarLen(self):
+        if self.__dict__.get('var_len') is None:
+            raise Exception("Shake algorithm require a length!")
         else:
-            _hex = digest_exc.hexdigest()
-            _bytes = digest_exc.digest()
-      
-        print(f"""
-Raw: {info}
-Hash: {al}
-Bytes: {_bytes}
-Hex: {_hex}
-Length: {len(_hex)}""")
+            return int(self.var_len)
+
+def execute(argv):
+    h_base = Hasher(argv)
+ 
+    digest = h_base.retrieveAlgorithm(HashDict, "hash")
+     
+    _hex = None
+    _bytes = None
+    digest_exc = digest(h_base.useContent())
+    if digest == shake_128 or digest == shake_256:
+        varLen = h_base.getVarLen()
+        # noinspection PyArgumentList
+        _hex = digest_exc.hexdigest(varLen)
+        # noinspection PyArgumentList
+        _bytes = digest_exc.digest(varLen)
+    else:
+        _hex = digest_exc.hexdigest()
+        _bytes = digest_exc.digest()
+
+    h_base.__dict__['bytes'] = str(_bytes)
+    h_base.__dict__['hex'] = _hex
+    h_base.__dict__['length'] = len(_hex)
+
+    print(h_base)

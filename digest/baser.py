@@ -1,6 +1,6 @@
-from sys import argv, getdefaultencoding
+from sys import getdefaultencoding
 from base64 import *
- 
+from common.cipher_base import CipherBase
 
 BaseDict = {
     "16": (b16encode, b16decode),
@@ -10,40 +10,13 @@ BaseDict = {
     "85": (b85encode, b85decode)
 }
 
-def execute():
-    argv_length = len(argv)
+def execute(argv):
+    c_base = CipherBase(argv, '64')
+    
+    base = c_base.retrieveAlgorithm(BaseDict, 'BASE')   
+    base = base[0] if c_base.isEncrypt() else base[1]
 
-    is_encoding = None
-    bit = None
-    encoding = getdefaultencoding()
-    info = None
-    if argv_length >= 7:
-         for index in range(3, argv_length, 2):
-             if argv[index] == '-t':
-                 real_encoding = argv[index + 1]
-                 is_encoding = True if real_encoding == 'e' else (False if real_encoding == 'd' else None)
-             elif argv[index] == '-b':
-                 bit = argv[index + 1]
-             elif argv[index] == '-e':
-                 encoding = argv[index + 1]
-             elif index == argv_length - 1:
-                 info = argv[index]
-             
+    c_base.__dict__['output'] = c_base.encodeText(lambda: base(c_base.useContent()))
+    c_base.algorithm = f"base{c_base.algorithm}"
 
-    if is_encoding is None:
-        raise Exception("Please give a target action!")
-    if bit is None:
-        raise Exception("Please give a encoding bit!")
-    if info is None:
-        raise Exception("No message definition!")
-    
-    base = BaseDict.get(bit)
-    if base is None:
-        raise Exception("No base algorithm definition!")
-    
-    base = base[0] if is_encoding else base[1]
-    print(f"""
-Raw: {info}
-Method: {"encoding" if is_encoding else "decoding"} - {bit}
-Output: {base(info.encode(encoding)).decode(encoding)}""")
-    
+    print(c_base)

@@ -37,19 +37,12 @@ def execute(argv):
  
     digest = h_base.retrieveAlgorithm(HashDict, "hash")
      
-    _hex = None
-    _bytes = None
+   
     digest_exc = digest(h_base.useContent())
-    if digest == shake_128 or digest == shake_256:
-        varLen = h_base.getVarLen()
-        # noinspection PyArgumentList
-        _hex = digest_exc.hexdigest(varLen)
-        # noinspection PyArgumentList
-        _bytes = digest_exc.digest(varLen)
-    else:
-        _hex = digest_exc.hexdigest()
-        _bytes = digest_exc.digest()
+      # noinspection PyArgumentList
+    _bytes = h_base.calculateDuration(lambda: digest_exc.digest(h_base.getVarLen()) if digest == shake_128 or digest == shake_256 else digest_exc.digest())
 
+    _hex = _bytes.hex()
     h_base.__dict__['bytes'] = str(_bytes)
     h_base.__dict__['hex'] = _hex
     h_base.__dict__['length'] = len(_hex)

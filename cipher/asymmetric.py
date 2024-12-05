@@ -1,5 +1,5 @@
 from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5 as PKCS1_v1_5_SIG
+from Crypto.Signature import PKCS1_PSS, PKCS1_v1_5 as PKCS1_v1_5_SIG
 from Crypto.Cipher import PKCS1_OAEP, PKCS1_v1_5
 from common.cipher_base import CipherBase
 from Crypto.Hash import SHA256
@@ -11,13 +11,16 @@ class Asymmetric(CipherBase):
         if self.algorithm == "rsa":
             if self.isEncrypt():
                 l = argv.get('-l')
-                self.gen_len = int(l) if l in ['1024', '2048', '3072'] else 2048 if l is None else 0
+                self.gen_len = int(l) if l in ('1024', '2048', '3072') else 2048 if l is None else 0
                 if self.gen_len == 0:
                     raise Exception("Please choose a valid length: 1024, 2048, or 3072!")
             self.mode = argv.get('-m', "oaep")
             sign = argv.get('-s')
             if sign is not None:
                 self.sign = sign
+            signature = argv.get('-sm')
+            if signature is not None:
+                self.signature = signature
             pwd = argv.get('-pwd')
             if pwd is not None:
                 self.pwd = pwd
@@ -40,10 +43,15 @@ def _enRsa(asym_cipher):
 
     mode = asym_cipher.getRsaMode()
     cipher_rsa = mode(public_key)
-    cipher_text = cipher_rsa.encrypt(asym_cipher.useContent())
+    cipher_text = asym_cipher.calculateDuration(lambda: cipher_rsa.encrypt(asym_cipher.useContent())) 
 
-    if mode == PKCS1_v1_5.new and asym_cipher.__dict__.get('sign') is not None:
-        asym_cipher.__dict__['sign_text'] = asym_cipher.encodeBase64(PKCS1_v1_5_SIG.new(RSA.import_key(private_key, passphrase=pwd)).sign(SHA256.new(asym_cipher.sign.encode(asym_cipher.encoding))))
+    if asym_cipher.__dict__.get('sign') is not None:
+        signature = asym_cipher.__dict__.get('signature')
+        sig = {'1.5' : PKCS1_v1_5_SIG, 'pss' : PKCS1_PSS}.get(signature) if signature is not None else PKCS1_PSS
+        if sig is None:
+            raise Exception("Please set a valid signature mode!")
+        asym_cipher.__dict__['sign_text'] = asym_cipher.encodeBase64(
+            sig.new(RSA.import_key(private_key, passphrase=pwd)).sign(SHA256.new(asym_cipher.sign.encode(asym_cipher.encoding))))
 
     if pwd is not None:
         asym_cipher.__dict__['password'] = pwd
@@ -67,7 +75,7 @@ def _deRsa(asym_cipher):
 
     mode = asym_cipher.getRsaMode()
     cipher_rsa = mode(private_key)
-    data = cipher_rsa.decrypt(ciphertext) if mode == PKCS1_OAEP.new else cipher_rsa.decrypt(ciphertext, None)
+    data = asym_cipher.calculateDuration(lambda: cipher_rsa.decrypt(ciphertext) if mode == PKCS1_OAEP.new else cipher_rsa.decrypt(ciphertext, None))
 
     asym_cipher.__dict__['cipher_min_len'] = private_key.size_in_bytes()
     asym_cipher.__dict__['output'] = asym_cipher.encodeText(data)

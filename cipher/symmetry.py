@@ -25,10 +25,10 @@ def _enEs(sym_cipher, es):
     data = sym_cipher.useContent()
     ct_bytes : any
     if mode == es.MODE_EAX:
-        ct_bytes, tag = cipher.encrypt_and_digest(data)
+        ct_bytes, tag = sym_cipher.calculateDuration(lambda: cipher.encrypt_and_digest(data))
         sym_cipher.__dict__['tag'] = sym_cipher.encodeBase64(tag)
     else:
-        ct_bytes = cipher.encrypt(pad(data, es.block_size) if mode in (es.MODE_CBC, es.MODE_ECB) else data)
+        ct_bytes = sym_cipher.calculateDuration(lambda: cipher.encrypt(pad(data, es.block_size) if mode in (es.MODE_CBC, es.MODE_ECB) else data))
 
     sym_cipher.__dict__['key'] = sym_cipher.encodeBase64(key)
     sym_cipher.__dict__['cipher_text'] = sym_cipher.encodeBase64(ct_bytes)
@@ -63,7 +63,8 @@ def _deEs(sym_cipher, es):
     cipher = es.new(key, mode) \
         if mode == es.MODE_ECB else es.new(key, mode, nonce=nonce) \
         if mode == es.MODE_CTR or mode == es.MODE_EAX else es.new(key, mode, iv)
-    data = cipher.decrypt_and_verify(ct, sym_cipher.decodeBase64(data['tag'])) if mode == es.MODE_EAX else cipher.decrypt(ct)
+    data = sym_cipher.calculateDuration(lambda: cipher.decrypt_and_verify(ct, sym_cipher.decodeBase64(data['tag']))) \
+          if mode == es.MODE_EAX else sym_cipher.calculateDuration(lambda: cipher.decrypt(ct))
     if mode in (es.MODE_CBC, es.MODE_ECB):
         data = unpad(data, es.block_size)
     sym_cipher.__dict__['output'] = sym_cipher.encodeText(data)

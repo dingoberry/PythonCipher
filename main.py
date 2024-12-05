@@ -30,7 +30,7 @@ Support help:
             aci(Asymmetric Cipher):
                 -t e(Encrypt) | d(Decrypt) -a(Algorithm) {' | '.join([item for item in LibAsymCipher.CipherDict.keys()])}
                     [Option]: 
-                            rsa(Encrypt): -l(length) 1024 | 2048(default) | 3072 -s <Sign message>
+                            rsa(Encrypt): -l(length) 1024 | 2048(default) | 3072 -s <Sign message> -sm(Signature) pss | 1.5(default)
                                           -m(mode) oaep(default) | v1.5
                                           -pwd <Password>
 ''')

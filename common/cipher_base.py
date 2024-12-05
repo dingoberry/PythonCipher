@@ -1,5 +1,6 @@
 from sys import getdefaultencoding
 from base64 import b64encode, b64decode, b85decode, b85encode
+from datetime import datetime
 import json
 
 class AlgorithmBase:
@@ -10,6 +11,12 @@ class AlgorithmBase:
 
         if self.algorithm is None:
             raise Exception("Please give a algorithm!")
+
+    def calculateDuration(self, caller):
+        now = datetime.now()
+        result = caller()
+        self.__dict__['use_time'] = f'{int((datetime.now() - now).total_seconds() * 1000)}ms'
+        return result
         
     def retrieveAlgorithm(self, al_dict, hint = None):
         algorithm_func = al_dict.get(self.algorithm)

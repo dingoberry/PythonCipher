@@ -4,7 +4,7 @@ from common.cipher_base import CipherBase
 
 BaseDict = {
     "16": (b16encode, b16decode),
-    "32": (b32encode, b32hexdecode),
+    "32": (b32encode, b32decode),
     "32h": (b32hexencode, b32hexdecode),
     "64": (b64encode, b64decode),
     "85": (b85encode, b85decode)

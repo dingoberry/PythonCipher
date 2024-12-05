@@ -2,7 +2,7 @@ from sys import argv, getdefaultencoding, exc_info
 import digest.hasher as LibHasher
 import digest.baser as LibBaser
 import cipher.symmetry as LibSymCipher
-import cipher.asymmetric as LibAsymCipher
+import cipher.asymmetry as LibAsymCipher
 
 def _showHelp():
     encoding = getdefaultencoding()
@@ -16,7 +16,7 @@ Support help:
             hash:
                 -a(Algorithm) {' | '.join([item for item in LibHasher.HashDict.keys()])}
                     [Option]: 
-                            -l(shake128, shake128 required) <byte length>
+                            -l(shake128, shake256 required) <byte length>
                     
             base(Base Algorithm): 
                 -t e(Encrypt) | d(Decrypt) -a(Algorithm)(base64-default) {' | '.join([item for item in LibBaser.BaseDict.keys()])}
@@ -35,7 +35,7 @@ Support help:
                                           -pwd <Password>
 ''')
     
-executeDict = {
+ExecuteDict = {
     "hash": LibHasher.execute,
     "base": LibBaser.execute,
     "sci": LibSymCipher.execute,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         exit(1)       
 
     ec = argDic.get('-w')
-    ec = executeDict[ec] if ec is not None else ec
+    ec = ExecuteDict[ec] if ec is not None else ec
     if ec is None:
         _showHelp()
         exit(1)     
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(e)
             _showHelp()
-        except:
+        except any:
             for exc in exc_info(): 
                 print(exc)
             _showHelp()

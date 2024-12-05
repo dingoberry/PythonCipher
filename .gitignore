@@ -4,3 +4,7 @@ venv
 .idea
 .vscode
 *.iml
+.build
+build
+.intermediates
+intermediates

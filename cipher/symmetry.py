@@ -21,7 +21,7 @@ def _enEs(sym_cipher, es):
     key = get_random_bytes(sym_cipher.seed_length)
     mode = sym_cipher.getMode(es)
     # noinspection PyTypeChecker
-    cipher = es.new(key, mode)
+    cipher = es.new(key, mode) if mode != es.MODE_CTR or sym_cipher.algorithm != 'des' else es.new(key, mode, nonce=get_random_bytes(7))
     data = sym_cipher.useContent()
     ct_bytes : any
     if mode == es.MODE_EAX:

@@ -1,7 +1,7 @@
-from sys import getdefaultencoding
 from hashlib import *
+from Crypto.Hash import RIPEMD160
 from common.cipher_base import AlgorithmBase
- 
+
 HashDict = {
     "md5": md5,
     "sha1": sha1,
@@ -17,6 +17,7 @@ HashDict = {
     "shake256": shake_256,
     "blake2b": blake2b,
     "blake2s": blake2s,
+    "ripemd160": RIPEMD160.new
 }
 
 class Hasher(AlgorithmBase):
@@ -34,10 +35,9 @@ class Hasher(AlgorithmBase):
 
 def execute(argv):
     h_base = Hasher(argv)
- 
+
     digest = h_base.retrieveAlgorithm(HashDict, "hash")
-     
-   
+
     digest_exc = digest(h_base.useContent())
       # noinspection PyArgumentList
     _bytes = h_base.calculateDuration(lambda: digest_exc.digest(h_base.getVarLen()) if digest == shake_128 or digest == shake_256 else digest_exc.digest())

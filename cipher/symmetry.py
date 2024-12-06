@@ -1,14 +1,17 @@
 import json
-from Crypto.Cipher import AES, DES
+
+from Crypto.Cipher import AES, DES, DES3
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+
 from common.cipher_base import CipherBase
+
 
 class SymCipher(CipherBase):
     def __init__(self, argv, algorithm=None) -> None:
         super().__init__(argv, algorithm)
 
-        if self.algorithm in ('aes', 'des'):
+        if self.algorithm in ('aes', 'des', 'des3'):
             l = argv.get('-l')
             self.seed_length = 8 if self.algorithm == 'des' else 16 if l is None else int(int(l) / 8)
             self.mode = argv.get('-m', 'cbc')
@@ -21,7 +24,7 @@ def _enEs(sym_cipher, es):
     key = get_random_bytes(sym_cipher.seed_length)
     mode = sym_cipher.getMode(es)
     # noinspection PyTypeChecker
-    cipher = es.new(key, mode) if mode != es.MODE_CTR or sym_cipher.algorithm != 'des' else es.new(key, mode, nonce=get_random_bytes(7))
+    cipher = es.new(key, mode) if mode != es.MODE_CTR or (sym_cipher.algorithm != 'des' and sym_cipher.algorithm != 'des3') else es.new(key, mode, nonce=get_random_bytes(7))
     data = sym_cipher.useContent()
     ct_bytes : any
     if mode == es.MODE_EAX:
@@ -82,10 +85,16 @@ def _enDes(sym_cipher):
 def _deDes(sym_cipher):
     _deEs(sym_cipher, DES)
 
+def _enDes3(sym_cipher):
+    _enEs(sym_cipher, DES3)
+
+def _deDes3(sym_cipher):
+    _deEs(sym_cipher, DES3)
 
 CipherDict = {
     "aes": (_enAes, _deAes),
-    "des": (_enDes, _deDes)
+    "des": (_enDes, _deDes),
+    "des3": (_enDes3, _deDes3),
 }
 
 def execute(argv):

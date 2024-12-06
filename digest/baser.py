@@ -1,5 +1,5 @@
-from sys import getdefaultencoding
 from base64 import *
+
 from common.cipher_base import CipherBase
 
 BaseDict = {
